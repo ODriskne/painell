@@ -3,131 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Interativo de Falhas (Relés)</title>
+    <title>Painel de Falhas (Relés)</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #f4f6f9;
             color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            text-align: center;
             padding: 20px;
         }
-        h1 { color: #2c3e50; margin-bottom: 5px; }
-        p { color: #7f8c8d; margin-bottom: 25px; }
+        h1 { color: #2c3e50; }
         .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
             max-width: 900px;
+            margin: 20px auto;
         }
         .card {
             background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 180px;
             border-top: 4px solid #34495e;
-            transition: transform 0.2s;
         }
-        .card:hover {
-            transform: translateY(-2px);
-        }
-        .card h3 { margin: 0 0 20px 0; color: #2c3e50; }
-        
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+        .btn {
             background-color: #bdc3c7;
-            transition: .3s;
-            border-radius: 34px;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            transition: 0.2s;
         }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px; width: 26px;
-            left: 4px; bottom: 4px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
+        .btn.ativo {
+            background-color: #e74c3c;
         }
-        input:checked + .slider { background-color: #e74c3c; } 
-        input:checked + .slider:before { transform: translateX(26px); }
     </style>
 </head>
 <body>
 
     <h1>Painel de Controle de Falhas</h1>
-    <p>Ativação e Desativação de Relés em Tempo Real</p>
+    <p>Clique nos botões para ligar (vermelho) ou desligar (cinza)</p>
 
     <div class="grid-container" id="painel-reles">
-        <!-- Botões gerados via JavaScript -->
+        <!-- Os cartões vão aparecer aqui obrigatoriamente -->
     </div>
 
     <script>
         const databaseURL = "https://firebaseio.com";
         const container = document.getElementById('painel-reles');
         const totalReles = 8;
+        
+        // Dicionário para guardar o estado local na memória do site
+        let estadosReles = {};
 
-        // Renderiza os botões imediatamente na tela (sem depender do Firebase carregar primeiro)
+        // Criação HTML pura e direta na tela (sem depender de nenhuma resposta de servidor)
         for (let i = 1; i <= totalReles; i++) {
             const defectKey = `DEFEITO${i}`;
+            estadosReles[defectKey] = false; // Começa desligado
+
             const card = document.createElement('div');
             card.className = 'card';
             card.innerHTML = `
-                <h3>Relé ${i} (${defectKey})</h3>
-                <label class="switch">
-                    <input type="checkbox" id="${defectKey}" onchange="atualizarFirebase('${defectKey}', this.checked)">
-                    <span class="slider"></span>
-                </label>
+                <h3>Relé ${i}</h3>
+                <small style="color: #7f8c8d;">${defectKey}</small>
+                <button class="btn" id="btn-${defectKey}" onclick="alternarEstado('${defectKey}')">DESLIGADO</button>
             `;
             container.appendChild(card);
         }
 
-        // Envia o estado atualizado direto via requisição HTTP (Exatamente como o seu ESP32 lê)
-        function atualizarFirebase(chave, status) {
+        // Função que muda a cor do botão na hora e envia para o Firebase
+        function alternarEstado(chave) {
+            // Inverte o estado atual
+            estadosReles[chave] = !estadosReles[chave];
+            
+            // Atualiza o visual do botão imediatamente
+            atualizarVisualBotao(chave, estadosReles[chave]);
+
+            // Envia para o Firebase
             fetch(`${databaseURL}/${chave}.json`, {
                 method: 'PUT',
-                body: JSON.stringify(status)
+                body: JSON.stringify(estadosReles[chave])
             })
             .then(res => res.json())
-            .then(data => console.log(`Atualizado ${chave}:`, data))
-            .catch(error => console.error("Erro ao enviar comando:", error));
+            .then(data => console.log(`Sucesso ao atualizar ${chave}:`, data))
+            .catch(error => {
+                console.error("Erro na comunicação com Firebase:", error);
+                alert("Erro ao enviar dados. Verifique a internet ou as regras do Firebase.");
+            });
         }
 
-        // Sincroniza o estado inicial dos botões com o banco de dados
-        function buscarEstadosIniciais() {
+        function atualizarVisualBotao(chave, ligado) {
+            const botao = document.getElementById(`btn-${chave}`);
+            if (botao) {
+                if (ligado) {
+                    botao.classList.add('ativo');
+                    botao.innerText = "FALHA ATIVADA";
+                } else {
+                    botao.classList.remove('ativo');
+                    botao.innerText = "DESLIGADO";
+                }
+            }
+        }
+
+        // Função para checar o banco e atualizar os botões se alguém mudar por fora
+        function sincronizarBanco() {
             for (let i = 1; i <= totalReles; i++) {
                 const defectKey = `DEFEITO${i}`;
                 fetch(`${databaseURL}/${defectKey}.json`)
                     .then(res => res.json())
                     .then(valor => {
-                        const checkbox = document.getElementById(defectKey);
-                        if (checkbox && valor !== null) {
-                            checkbox.checked = (valor === true || valor === 1 || valor === "true");
+                        if (valor !== null) {
+                            const status = (valor === true || valor === 1 || valor === "true");
+                            estadosReles[defectKey] = status;
+                            atualizarVisualBotao(defectKey, status);
                         }
                     })
-                    .catch(err => console.error("Erro ao buscar dados:", err));
+                    .catch(err => console.log("Aguardando conexão com banco..."));
             }
         }
 
-        // Executa a busca ao carregar a página
-        buscarEstadosIniciais();
-        // Atualiza a cada 3 segundos para manter o painel sincronizado com mudanças externas
-        setInterval(buscarEstadosIniciais, 3000);
+        // Executa a primeira checagem e repete a cada 3 segundos
+        sincronizarBanco();
+        setInterval(sincronizarBanco, 3000);
     </script>
 </body>
 </html>
