@@ -70,7 +70,7 @@
         input:checked + .slider:before { transform: translateX(26px); }
     </style>
 
-    <!-- Scripts oficiais da Biblioteca do Firebase -->
+    <!-- Scripts Oficiais do Firebase SDK v8 -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
 </head>
@@ -80,11 +80,11 @@
     <p>Ativação e Desativação de Relés em Tempo Real</p>
 
     <div class="grid-container" id="painel-reles">
-        <!-- Os botões serão gerados automaticamente -->
+        <!-- Os botões serão montados dinamicamente -->
     </div>
 
     <script>
-        // SUAS CREDENCIAIS REAIS E OFICIAIS DO SEU PROJETO FIREBASE
+        // Suas credenciais oficiais completas que você gerou
         const firebaseConfig = {
             apiKey: "AIzaSyD-yY5_lvZTXIss87D4wBwLGDf9Wf6Tj-4",
             authDomain: "://firebaseapp.com",
@@ -96,14 +96,14 @@
             measurementId: "G-TN3567Q50W"
         };
         
-        // Inicializa a conexão oficial do Firebase
+        // Inicializa a aplicação conectando com segurança ao banco
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         const container = document.getElementById('painel-reles');
         const totalReles = 8;
 
-        // Cria os botões na tela
+        // Monta a interface de chaves deslizantes (toggles)
         for (let i = 1; i <= totalReles; i++) {
             const defectKey = `DEFEITO${i}`;
             const card = document.createElement('div');
@@ -118,16 +118,16 @@
             container.appendChild(card);
         }
 
-        // Função oficial que atualiza o Firebase usando a biblioteca
+        // Altera o estado usando as funções oficiais nativas do Firebase (Sem erro de CORS)
         function atualizarFirebase(chave, status) {
             database.ref(chave).set(status)
                 .catch(error => {
-                    console.error(`Erro ao atualizar ${chave}:`, error);
-                    alert("Erro ao enviar para o Firebase! Verifique as Regras do banco de dados.");
+                    console.error("Erro interno do Firebase:", error);
+                    alert("Acesso negado pelo banco de dados. Revise as chaves ou regras.");
                 });
         }
 
-        // Fica ouvindo o banco de dados em tempo real
+        // Escuta o banco de dados e sincroniza o visual dos botões em tempo real
         for (let i = 1; i <= totalReles; i++) {
             const defectKey = `DEFEITO${i}`;
             database.ref(defectKey).on('value', (snapshot) => {
