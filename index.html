@@ -35,12 +35,8 @@
             border-top: 4px solid #34495e;
             transition: transform 0.2s;
         }
-        .card:hover {
-            transform: translateY(-2px);
-        }
+        .card:hover { transform: translateY(-2px); }
         .card h3 { margin: 0 0 20px 0; color: #2c3e50; }
-        
-        /* Custom Toggle Switch */
         .switch {
             position: relative;
             display: inline-block;
@@ -65,26 +61,23 @@
             transition: .3s;
             border-radius: 50%;
         }
-        /* Cor vermelha para sinalizar "Falha Ativada" */
         input:checked + .slider { background-color: #e74c3c; } 
         input:checked + .slider:before { transform: translateX(26px); }
     </style>
+
+    <!-- Firebase SDK v8 (Bibliotecas oficiais) -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 </head>
 <body>
 
     <h1>Painel de Controle de Falhas</h1>
     <p>Ativação e Desativação de Relés em Tempo Real</p>
 
-    <div class="grid-container" id="painel-reles">
-        <!-- Os botões serão montados aqui pelo JavaScript -->
-    </div>
+    <div class="grid-container" id="painel-reles"></div>
 
-    <!-- Script modular moderno para o Firebase (Evita bloqueios do navegador) -->
-    <script type="module">
-        import { initializeApp } from "https://gstatic.com";
-        import { getDatabase, ref, set, onValue } from "https://gstatic.com";
-
-        // Suas credenciais reais do Firebase
+    <script>
+        // Suas credenciais reais do painel Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD-yY5_lvZTXIss87D4wBwLGDf9Wf6Tj-4",
             authDomain: "://firebaseapp.com",
@@ -96,14 +89,13 @@
             measurementId: "G-TN3567Q50W"
         };
         
-        // Inicializa o aplicativo Firebase moderno
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
+        // Inicializa o Firebase oficialmente
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
         const container = document.getElementById('painel-reles');
         const totalReles = 8;
 
-        // Cria os botões na tela IMEDIATAMENTE
+        // Renderiza os botões dinamicamente por script
         for (let i = 1; i <= totalReles; i++) {
             const defectKey = `DEFEITO${i}`;
             const card = document.createElement('div');
@@ -111,34 +103,23 @@
             card.innerHTML = `
                 <h3>Relé ${i} (${defectKey})</h3>
                 <label class="switch">
-                    <input type="checkbox" id="${defectKey}">
+                    <input type="checkbox" id="${defectKey}" onchange="atualizarFirebase('${defectKey}', this.checked)">
                     <span class="slider"></span>
                 </label>
             `;
             container.appendChild(card);
-
-            // Vincula a função de clique depois de criar o botão
-            const checkbox = card.querySelector('input');
-            checkbox.addEventListener('change', (e) => {
-                atualizarFirebase(defectKey, e.target.checked);
-            });
         }
 
-        // Função interna que grava direto no Firebase Realtime Database
+        // Grava alterações direto no banco
         function atualizarFirebase(chave, status) {
-            set(ref(database, chave), status)
-                .then(() => console.log(`Atualizado ${chave} para: ${status}`))
-                .catch(error => {
-                    console.error("Erro interno do Firebase:", error);
-                    alert("Acesso negado pelo banco de dados. Revise as regras do Firebase.");
-                });
+            database.ref(chave).set(status)
+                .catch(error => console.error("Erro ao gravar:", error));
         }
 
-        // Escuta o banco de dados em tempo real e atualiza o visual dos botões
+        // Sincroniza em tempo real com o banco de dados
         for (let i = 1; i <= totalReles; i++) {
             const defectKey = `DEFEITO${i}`;
-            const dbRef = ref(database, defectKey);
-            onValue(dbRef, (snapshot) => {
+            database.ref(defectKey).on('value', (snapshot) => {
                 const valor = snapshot.val();
                 const checkbox = document.getElementById(defectKey);
                 if (checkbox) {
